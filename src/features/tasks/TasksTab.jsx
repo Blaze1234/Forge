@@ -1,9 +1,63 @@
 import { useState, useEffect } from 'react';
-import { useTasks, useTaskNotes } from '../../hooks';
+import { useTasks, useTaskNotes, useProjects } from '../../hooks';
 import { Button, PriorityBadge, TaskStatusBadge, Modal, FormField, Input, Select, Textarea, TASK_STATUS_LABELS } from '../../components/ui';
 import { RichTextEditor, RichTextRenderer } from '../../components/ui/RichText';
-import { formatDate, formatDateTime } from '../../utils/data';
-import { Plus, Trash2, CalendarDays, StickyNote, Pencil, FileText, ClipboardList } from 'lucide-react';
+import { formatDate, formatDateTime, generateId } from '../../utils/data';
+import { Plus, Trash2, CalendarDays, StickyNote, Pencil, FileText, ClipboardList, CheckSquare, Square, X as XIcon } from 'lucide-react';
+
+// ── Checklist Panel (shared by Add + Edit task modals) ──────────────────────────
+function ChecklistPanel({ checklist, onChange }) {
+  const [draft, setDraft] = useState('');
+
+  const addItem = () => {
+    if (!draft.trim()) return;
+    onChange([...checklist, { id: generateId(), text: draft.trim(), checked: false }]);
+    setDraft('');
+  };
+  const toggle = (id) => onChange(checklist.map(c => c.id === id ? { ...c, checked: !c.checked } : c));
+  const remove = (id) => onChange(checklist.filter(c => c.id !== id));
+
+  const done = checklist.filter(c => c.checked).length;
+
+  return (
+    <div>
+      {checklist.length > 0 && (
+        <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 10 }}>{done}/{checklist.length} complete</div>
+      )}
+      {checklist.map(item => (
+        <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <button
+            onClick={() => toggle(item.id)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: item.checked ? 'var(--success)' : 'var(--text-placeholder)', flexShrink: 0 }}
+          >
+            {item.checked ? <CheckSquare size={16} /> : <Square size={16} />}
+          </button>
+          <span style={{ fontSize: 13, flex: 1, color: item.checked ? 'var(--text-faint)' : 'var(--text-primary)', textDecoration: item.checked ? 'line-through' : 'none' }}>
+            {item.text}
+          </span>
+          <button onClick={() => remove(item.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-placeholder)', padding: 3, display: 'flex', flexShrink: 0 }}>
+            <XIcon size={12} />
+          </button>
+        </div>
+      ))}
+      {checklist.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-placeholder)' }}>
+          <CheckSquare size={22} style={{ margin: '0 auto 6px', display: 'block', opacity: 0.35 }} />
+          <p style={{ fontSize: 12, margin: 0 }}>No checklist items yet — e.g. a pre-order verification gate.</p>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+        <Input
+          value={draft}
+          onChange={e => setDraft(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } }}
+          placeholder="Add checklist item…"
+        />
+        <Button size="sm" variant="primary" onClick={addItem}><Plus size={13} /></Button>
+      </div>
+    </div>
+  );
+}
 
 const PRIORITIES    = ['low', 'medium', 'high', 'critical'];
 const TASK_STATUSES = ['on-hold', 'working-on-it', 'completed-it'];
@@ -17,13 +71,15 @@ const tsToDateInput = (ts) => {
 // ── Add Task Modal ─────────────────────────────────────────────────────────────
 function AddTaskModal({ isOpen, onClose, projectId }) {
   const { addTask } = useTasks();
-  const [form, setForm] = useState({ title: '', priority: 'medium', taskStatus: 'working-on-it', dueDate: '', assignee: '', miniNote: '' });
+  const { projects } = useProjects();
+  const phases = projects.find(p => p.id === projectId)?.phases ?? [];
+  const [form, setForm] = useState({ title: '', priority: 'medium', taskStatus: 'working-on-it', dueDate: '', assignee: '', miniNote: '', phaseId: '' });
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = () => {
     if (!form.title.trim()) return;
-    addTask({ ...form, projectId, dueDate: form.dueDate ? new Date(form.dueDate).getTime() : null });
-    setForm({ title: '', priority: 'medium', taskStatus: 'working-on-it', dueDate: '', assignee: '', miniNote: '' });
+    addTask({ ...form, projectId, phaseId: form.phaseId || null, dueDate: form.dueDate ? new Date(form.dueDate).getTime() : null });
+    setForm({ title: '', priority: 'medium', taskStatus: 'working-on-it', dueDate: '', assignee: '', miniNote: '', phaseId: '' });
     onClose();
   };
 
@@ -46,6 +102,14 @@ function AddTaskModal({ isOpen, onClose, projectId }) {
         <FormField label="Due Date"><Input type="date" value={form.dueDate} onChange={set('dueDate')} /></FormField>
         <FormField label="Assignee"><Input value={form.assignee} onChange={set('assignee')} placeholder="Name" /></FormField>
       </div>
+      {phases.length > 0 && (
+        <FormField label="Phase">
+          <Select value={form.phaseId} onChange={set('phaseId')}>
+            <option value="">No phase</option>
+            {phases.map(ph => <option key={ph.id} value={ph.id}>{ph.name}</option>)}
+          </Select>
+        </FormField>
+      )}
       <FormField label="Quick Note"><Textarea value={form.miniNote} onChange={set('miniNote')} placeholder="Quick note…" style={{ minHeight: 60 }} /></FormField>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
         <Button variant="ghost" onClick={onClose}>Cancel</Button>
@@ -142,6 +206,8 @@ function TaskNotesPanel({ taskId }) {
 function EditTaskModal({ task, onClose, onUpdate, onDelete }) {
   const [activeTab, setActiveTab] = useState('details');
   const { notes } = useTaskNotes(task.id);
+  const { projects } = useProjects();
+  const phases = projects.find(p => p.id === task.projectId)?.phases ?? [];
 
   const [form, setForm] = useState({
     title:         task.title         ?? '',
@@ -151,6 +217,7 @@ function EditTaskModal({ task, onClose, onUpdate, onDelete }) {
     dueDate:       tsToDateInput(task.dueDate),
     assignee:      task.assignee      ?? '',
     miniNote:      task.miniNote      ?? '',
+    phaseId:       task.phaseId       ?? '',
   });
 
   useEffect(() => {
@@ -162,6 +229,7 @@ function EditTaskModal({ task, onClose, onUpdate, onDelete }) {
       dueDate:       tsToDateInput(task.dueDate),
       assignee:      task.assignee      ?? '',
       miniNote:      task.miniNote      ?? '',
+      phaseId:       task.phaseId       ?? '',
     });
   }, [task.id]);
 
@@ -169,7 +237,7 @@ function EditTaskModal({ task, onClose, onUpdate, onDelete }) {
 
   const handleSave = () => {
     if (!form.title.trim()) return;
-    onUpdate({ id: task.id, ...form, dueDate: form.dueDate ? new Date(form.dueDate).getTime() : null });
+    onUpdate({ id: task.id, ...form, phaseId: form.phaseId || null, dueDate: form.dueDate ? new Date(form.dueDate).getTime() : null });
     onClose();
   };
 
@@ -177,9 +245,13 @@ function EditTaskModal({ task, onClose, onUpdate, onDelete }) {
     if (window.confirm(`Delete "${task.title}"?`)) { onDelete(task.id); onClose(); }
   };
 
+  const checklist = task.checklist ?? [];
+  const checklistDone = checklist.filter(c => c.checked).length;
+
   const TABS = [
-    { id: 'details', label: 'Details',  icon: ClipboardList },
-    { id: 'notes',   label: `Notes${notes.length ? ` (${notes.length})` : ''}`, icon: FileText },
+    { id: 'details',   label: 'Details',  icon: ClipboardList },
+    { id: 'checklist', label: `Checklist${checklist.length ? ` (${checklistDone}/${checklist.length})` : ''}`, icon: CheckSquare },
+    { id: 'notes',     label: `Notes${notes.length ? ` (${notes.length})` : ''}`, icon: FileText },
   ];
 
   return (
@@ -231,6 +303,14 @@ function EditTaskModal({ task, onClose, onUpdate, onDelete }) {
             <FormField label="Due Date"><Input type="date" value={form.dueDate} onChange={set('dueDate')} /></FormField>
             <FormField label="Assignee"><Input value={form.assignee} onChange={set('assignee')} placeholder="Name" /></FormField>
           </div>
+          {phases.length > 0 && (
+            <FormField label="Phase">
+              <Select value={form.phaseId} onChange={set('phaseId')}>
+                <option value="">No phase</option>
+                {phases.map(ph => <option key={ph.id} value={ph.id}>{ph.name}</option>)}
+              </Select>
+            </FormField>
+          )}
           <FormField label="Quick Note">
             <Textarea value={form.miniNote} onChange={set('miniNote')} placeholder="One-liner note shown on the task row…" style={{ minHeight: 70 }} />
           </FormField>
@@ -242,6 +322,11 @@ function EditTaskModal({ task, onClose, onUpdate, onDelete }) {
             </div>
           </div>
         </>
+      )}
+
+      {/* Checklist tab */}
+      {activeTab === 'checklist' && (
+        <ChecklistPanel checklist={checklist} onChange={(list) => onUpdate({ id: task.id, checklist: list })} />
       )}
 
       {/* Notes tab */}
@@ -314,6 +399,21 @@ function TaskRow({ task, onUpdate, onDelete }) {
               <FileText size={10} /> {notes.length}
             </span>
           )}
+          {/* Checklist progress badge */}
+          {task.checklist?.length > 0 && (() => {
+            const done = task.checklist.filter(c => c.checked).length;
+            const allDone = done === task.checklist.length;
+            return (
+              <span style={{
+                display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 500, borderRadius: 4, padding: '1px 6px',
+                color: allDone ? 'var(--success)' : 'var(--text-faint)',
+                background: allDone ? 'var(--success-light)' : 'var(--bg-page)',
+                border: `1px solid ${allDone ? 'var(--success-mid)' : 'var(--border-med)'}`,
+              }}>
+                <CheckSquare size={10} /> {done}/{task.checklist.length}
+              </span>
+            );
+          })()}
           {task.miniNote && <StickyNote size={12} color="var(--warning)" title={task.miniNote} />}
           {task.dueDate && (
             <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: isOverdue ? 'var(--danger)' : 'var(--text-faint)' }}>
@@ -334,12 +434,13 @@ function TaskRow({ task, onUpdate, onDelete }) {
 }
 
 // ── Tasks Tab ──────────────────────────────────────────────────────────────────
-export default function TasksTab({ projectId }) {
+export default function TasksTab({ projectId, phaseFilter = null }) {
   const { tasks, updateTask, deleteTask } = useTasks(projectId);
   const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter]   = useState('all');
 
-  const filtered = filter === 'all' ? tasks : tasks.filter(t => t.taskStatus === filter);
+  let filtered = filter === 'all' ? tasks : tasks.filter(t => t.taskStatus === filter);
+  if (phaseFilter) filtered = filtered.filter(t => t.phaseId === phaseFilter);
 
   return (
     <div>
