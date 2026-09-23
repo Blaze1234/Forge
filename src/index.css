@@ -1,0 +1,154 @@
+/* ─── Theme Variables ──────────────────────────────────────────────────────── */
+:root,
+[data-theme="light"] {
+  --bg-page:        #f8f7f5;
+  --bg-sidebar:     #ffffff;
+  --bg-card:        #ffffff;
+  --bg-card-alt:    #f9fafb;
+  --bg-input:       #ffffff;
+  --bg-hover:       #eff6ff;
+  --bg-code:        #f4f4f5;
+  --bg-kanban-col:  #f4f4f2;
+
+  --border:         #f0f0ee;
+  --border-med:     #e5e7eb;
+  --border-strong:  #d1d5db;
+
+  --text-primary:   #111827;
+  --text-secondary: #374151;
+  --text-muted:     #6b7280;
+  --text-faint:     #9ca3af;
+  --text-placeholder: #d1d5db;
+
+  --accent:         #2563eb;
+  --accent-light:   #eff6ff;
+  --accent-mid:     #bfdbfe;
+
+  --success:        #16a34a;
+  --success-light:  #f0fdf4;
+  --success-mid:    #bbf7d0;
+  --warning:        #f59e0b;
+  --danger:         #dc2626;
+  --danger-light:   #fef2f2;
+  --danger-mid:     #fecaca;
+
+  /* Status badge variants */
+  --badge-on-hold-bg:     #f4f4f5;
+  --badge-on-hold-text:   #52525b;
+  --badge-on-hold-border: #e4e4e7;
+  --badge-working-bg:     #eff6ff;
+  --badge-working-text:   #1d4ed8;
+  --badge-working-border: #bfdbfe;
+  --badge-done-bg:        #f0fdf4;
+  --badge-done-text:      #166534;
+  --badge-done-border:    #bbf7d0;
+
+  --badge-low-bg:      #f0fdf4;
+  --badge-low-text:    #166534;
+  --badge-low-border:  #bbf7d0;
+  --badge-med-bg:      #fffbeb;
+  --badge-med-text:    #92400e;
+  --badge-med-border:  #fde68a;
+  --badge-high-bg:     #fff7ed;
+  --badge-high-text:   #9a3412;
+  --badge-high-border: #fed7aa;
+  --badge-crit-bg:     #fef2f2;
+  --badge-crit-text:   #991b1b;
+  --badge-crit-border: #fecaca;
+
+  --shadow-modal: 0 8px 32px rgba(0,0,0,0.10);
+  --shadow-card:  0 1px 3px rgba(0,0,0,0.04);
+  --overlay:      rgba(0,0,0,0.18);
+}
+
+[data-theme="dark"] {
+  --bg-page:        #0f0f0f;
+  --bg-sidebar:     #141414;
+  --bg-card:        #1a1a1a;
+  --bg-card-alt:    #1f1f1f;
+  --bg-input:       #111111;
+  --bg-hover:       #1e2a3a;
+  --bg-code:        #1e1e1e;
+  --bg-kanban-col:  #161616;
+
+  --border:         #252525;
+  --border-med:     #2e2e2e;
+  --border-strong:  #3a3a3a;
+
+  --text-primary:   #f0f0f0;
+  --text-secondary: #d4d4d4;
+  --text-muted:     #8a8a8a;
+  --text-faint:     #5a5a5a;
+  --text-placeholder: #3a3a3a;
+
+  --accent:         #3b82f6;
+  --accent-light:   #1e2d45;
+  --accent-mid:     #1e3a5f;
+
+  --success:        #22c55e;
+  --success-light:  #0f2318;
+  --success-mid:    #14532d;
+  --warning:        #f59e0b;
+  --danger:         #ef4444;
+  --danger-light:   #2d1010;
+  --danger-mid:     #7f1d1d;
+
+  --badge-on-hold-bg:     #1e1e1e;
+  --badge-on-hold-text:   #a1a1aa;
+  --badge-on-hold-border: #3f3f46;
+  --badge-working-bg:     #1e2d45;
+  --badge-working-text:   #93c5fd;
+  --badge-working-border: #1e3a5f;
+  --badge-done-bg:        #0f2318;
+  --badge-done-text:      #86efac;
+  --badge-done-border:    #14532d;
+
+  --badge-low-bg:      #0f2318;
+  --badge-low-text:    #86efac;
+  --badge-low-border:  #14532d;
+  --badge-med-bg:      #2d1f00;
+  --badge-med-text:    #fcd34d;
+  --badge-med-border:  #78350f;
+  --badge-high-bg:     #2d1500;
+  --badge-high-text:   #fdba74;
+  --badge-high-border: #7c2d12;
+  --badge-crit-bg:     #2d1010;
+  --badge-crit-text:   #fca5a5;
+  --badge-crit-border: #7f1d1d;
+
+  --shadow-modal: 0 8px 40px rgba(0,0,0,0.6);
+  --shadow-card:  0 1px 3px rgba(0,0,0,0.3);
+  --overlay:      rgba(0,0,0,0.55);
+}
+
+/* ─── Global resets ────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+
+body {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-med); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: var(--cal-icon-filter, none);
+  cursor: pointer;
+  opacity: 0.5;
+}
+
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Smooth theme transitions on key properties */
+div, button, input, select, textarea, span, a, nav, aside, main, header {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
