@@ -21,6 +21,11 @@ export const ACTIONS = {
   UPDATE_TASK: 'UPDATE_TASK',
   DELETE_TASK: 'DELETE_TASK',
   MOVE_TASK:   'MOVE_TASK',
+  SET_TASK_CHECKLIST: 'SET_TASK_CHECKLIST',
+
+  // Project phases (stage-gate workflow) & status note
+  SET_PROJECT_PHASES: 'SET_PROJECT_PHASES',
+  SET_STATUS_NOTE:    'SET_STATUS_NOTE',
 
   // Notes
   ADD_NOTE:    'ADD_NOTE',
@@ -61,6 +66,7 @@ function appReducer(state, action) {
         id: generateId(), createdAt: Date.now(),
         status: 'working-on-it', statusComment: '',
         type: 'work',
+        phases: [], statusNote: '', statusNoteUpdatedAt: null,
         ...action.payload,
       };
       // Append to end of appropriate rank order
@@ -110,12 +116,37 @@ function appReducer(state, action) {
         ? { ...state, personalRankOrder: action.payload.order }
         : { ...state, workRankOrder: action.payload.order };
 
+    case ACTIONS.SET_PROJECT_PHASES: {
+      // payload: { projectId, phases: [{ id, name, position }] }
+      return {
+        ...state,
+        projects: state.projects.map(p => p.id === action.payload.projectId ? { ...p, phases: action.payload.phases } : p),
+        // Clear phaseId on tasks whose phase no longer exists, so nothing points at a deleted phase
+        tasks: state.tasks.map(t => {
+          if (t.projectId !== action.payload.projectId) return t;
+          const stillExists = action.payload.phases.some(ph => ph.id === t.phaseId);
+          return stillExists ? t : { ...t, phaseId: null };
+        }),
+      };
+    }
+
+    case ACTIONS.SET_STATUS_NOTE: {
+      // payload: { projectId, note }
+      return {
+        ...state,
+        projects: state.projects.map(p => p.id === action.payload.projectId
+          ? { ...p, statusNote: action.payload.note, statusNoteUpdatedAt: Date.now() }
+          : p),
+      };
+    }
+
     // ── Tasks ──────────────────────────────────────────────────────────────────
     case ACTIONS.ADD_TASK: {
       const task = {
         id: generateId(), createdAt: Date.now(),
         status: 'todo', priority: 'medium',
         taskStatus: 'working-on-it', statusComment: '', miniNote: '',
+        phaseId: null, checklist: [],
         ...action.payload,
       };
       return { ...state, tasks: [...state.tasks, task] };
@@ -132,6 +163,9 @@ function appReducer(state, action) {
       return { ...state, tasks: state.tasks.filter(t => t.id !== action.payload.id) };
     case ACTIONS.MOVE_TASK:
       return { ...state, tasks: state.tasks.map(t => t.id === action.payload.taskId ? { ...t, status: action.payload.newStatus } : t) };
+    case ACTIONS.SET_TASK_CHECKLIST:
+      // payload: { taskId, checklist: [{ id, text, checked }] }
+      return { ...state, tasks: state.tasks.map(t => t.id === action.payload.taskId ? { ...t, checklist: action.payload.checklist } : t) };
 
     // ── Notes ──────────────────────────────────────────────────────────────────
     case ACTIONS.ADD_NOTE: {

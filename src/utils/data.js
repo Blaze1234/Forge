@@ -103,6 +103,24 @@ export const getOverallStats = (tasks) => {
   return { total, done, inProgress, overdue };
 };
 
+// Relative time for staleness cues (e.g. status note "updated 2 days ago")
+export const formatRelativeTime = (ts) => {
+  if (!ts) return 'never';
+  const diff = Date.now() - ts;
+  const min = 60000, hr = 3600000, day = 86400000;
+  if (diff < min) return 'just now';
+  if (diff < hr) return `${Math.floor(diff / min)}m ago`;
+  if (diff < day) return `${Math.floor(diff / hr)}h ago`;
+  const days = Math.floor(diff / day);
+  if (days < 30) return `${days}d ago`;
+  return formatDate(ts);
+};
+
+// Starter phase template for hardware-style projects (stage-gate workflow)
+export const HARDWARE_PHASE_TEMPLATE = [
+  'Research', 'Schematic', 'Verification', 'Layout', 'Ordered', 'Bring-up', 'Iterate',
+];
+
 export const PROJECT_STATUSES = ['on-hold', 'working-on-it', 'completed-it'];
 export const TASK_STATUSES_NEW = ['on-hold', 'working-on-it', 'completed-it'];
 export const STATUS_LABELS_NEW = { 'on-hold': 'On Hold', 'working-on-it': 'Working On It', 'completed-it': 'Completed' };

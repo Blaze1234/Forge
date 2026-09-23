@@ -11,6 +11,8 @@ export function useProjects() {
     addProject:    (data) => dispatch({ type: ACTIONS.ADD_PROJECT,    payload: data }),
     updateProject: (data) => dispatch({ type: ACTIONS.UPDATE_PROJECT, payload: data }),
     deleteProject: (id)   => dispatch({ type: ACTIONS.DELETE_PROJECT, payload: { id } }),
+    setProjectPhases: (projectId, phases) => dispatch({ type: ACTIONS.SET_PROJECT_PHASES, payload: { projectId, phases } }),
+    setStatusNote:    (projectId, note)   => dispatch({ type: ACTIONS.SET_STATUS_NOTE,    payload: { projectId, note } }),
   };
 }
 
@@ -25,6 +27,7 @@ export function useTasks(projectId = null) {
     updateTask: (data) => dispatch({ type: ACTIONS.UPDATE_TASK, payload: data }),
     deleteTask: (id)   => dispatch({ type: ACTIONS.DELETE_TASK, payload: { id } }),
     moveTask:   (taskId, newStatus) => dispatch({ type: ACTIONS.MOVE_TASK, payload: { taskId, newStatus } }),
+    setTaskChecklist: (taskId, checklist) => dispatch({ type: ACTIONS.SET_TASK_CHECKLIST, payload: { taskId, checklist } }),
   };
 }
 
